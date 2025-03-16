@@ -1,0 +1,11 @@
+<svg width="65" height="64" viewBox="0 0 65 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Good_afternoon" clip-path="url(#clip0_204_1548)">
+<path id="star" d="M32.5 0L39.4571 6.03591L48.5 4.28719L51.507 12.993L60.2128 16L58.4641 25.0429L64.5 32L58.4641 38.9571L60.2128 48L51.507 51.007L48.5 59.7128L39.4571 57.9641L32.5 64L25.5429 57.9641L16.5 59.7128L13.493 51.007L4.78719 48L6.53591 38.9571L0.5 32L6.53591 25.0429L4.78719 16L13.493 12.993L16.5 4.28719L25.5429 6.03591L32.5 0Z" fill="#FFE0A3"/>
+<circle id="sun" cx="32.5" cy="32.0001" r="21.3333" fill="#FFC247"/>
+</g>
+<defs>
+<clipPath id="clip0_204_1548">
+<rect width="64" height="64" fill="white" transform="translate(0.5)"/>
+</clipPath>
+</defs>
+</svg>
