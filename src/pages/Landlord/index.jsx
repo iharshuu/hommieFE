@@ -69,7 +69,7 @@ const Landlords = () => {
                   'Authorization': `${token}`, // Include the token in the Authorization header
               },
           });
-          console.log(response.data);
+          // console.log(response.data);
           setHouses(response.data?.propertieshouse);
           setRooms(response.data?.propertiesroom)
       

@@ -60,7 +60,7 @@ const AddHostel = () => {
   };
   
   const handlesave =() =>{
-    console.log(formData)
+    // console.log(formData)
   }
 
   // Function to navigate to the next form step

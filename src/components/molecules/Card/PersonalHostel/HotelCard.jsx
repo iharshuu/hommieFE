@@ -24,7 +24,6 @@ const HotelCard = ({ hotel }) => {
 
       });
   
-      console.log(response.data);
         
       if (response?.data?.status === "S") {
         setTimeout(()=>{

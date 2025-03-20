@@ -30,7 +30,7 @@ const EditPropertyPage = () => {
                 'Authorization': `${token}`, // Include the token in the Authorization header
             },
         });
-        console.log(response.data);
+        // console.log(response.data);
         
         if (response?.data?.status === "S") {
           setFormData(response?.data?.propertydata);
@@ -50,7 +50,7 @@ useEffect(() => {
   const handleSave = async() => {
     // Handle save functionality here, you can send formData to backend
     const token = localStorage.getItem('hoomie');
-    console.log("Saved:", formData);
+    // console.log("Saved:", formData);
     try{ 
      const response = await axios.put(`${backendUrl}homePage/view_propertie/${id}`, formData, {
          headers: {
@@ -58,7 +58,7 @@ useEffect(() => {
              'Authorization': `${token}`, // Include the token in the Authorization header
          },
      });
-     console.log(response.data);
+    //  console.log(response.data);
      
      if (response?.data?.status === "S") {
        setFormData(response?.data?.propertydata);

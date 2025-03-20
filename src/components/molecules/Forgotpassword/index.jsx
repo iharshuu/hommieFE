@@ -20,7 +20,6 @@ const ForgotPassword = () => {
                 body: JSON.stringify({ email }),
             });
 
-            console.log(response)
 
             let data = response.json()
 

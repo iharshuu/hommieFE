@@ -27,7 +27,6 @@ const PersonalHostel = () => {
                     'Authorization': `${token}`, // Include the token in the Authorization header
                 },
             });
-            console.log(response.data);
             setHostelData(response.data?.properties);
         
             if (response.status === 200) {

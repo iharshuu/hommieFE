@@ -9,6 +9,7 @@ import Navbar from '../../components/organisms/Navbar';
 import { FaArrowLeft } from 'react-icons/fa';
 
 import Review from '../reviews/Reviews1';
+import { BeatLoader } from 'react-spinners';
 
 
 const RoomDetails = () => {
@@ -44,7 +45,9 @@ const RoomDetails = () => {
   }, [id]);
 
   if (!property) {
-    return <div>Loading...</div>;
+    return <div className="flex justify-center items-center h-[50vh]">
+    <BeatLoader color="#4A90E2" />
+</div>
   }
 
   const {

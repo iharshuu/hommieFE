@@ -107,7 +107,6 @@ const Allhouses = () => {
           caseSensitive: false,
         });
         const result = searcher.search(query);
-        console.log(result)
         setFilteredCareers(result);
       };
     

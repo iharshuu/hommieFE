@@ -1,5 +1,7 @@
 import React, { Suspense, lazy } from "react";
 import { Navigate, BrowserRouter, Routes, Route } from "react-router-dom";
+import ChatPage from "./pages/ChatPage/ChatPage";
+import { BeatLoader } from "react-spinners";
 
 
 const Login = lazy(() => import("./components/molecules/Login"));
@@ -22,9 +24,9 @@ const EditPropertyPage = lazy(() => import("./pages/Edit-hostel"));
 const AboutUs = lazy(() => import("./components/molecules/AboutUS"));
 
 const Loading = () => (
-  <div className="flex w-full h-screen justify-center items-center bg-grey-5 text-grey-90">
-    Loading...
-  </div>
+  <div className="flex justify-center items-center h-[50vh]">
+                    <BeatLoader color="#4A90E2" />
+                </div>
 );
 
 function App() {
@@ -42,6 +44,7 @@ function App() {
             <Route path="/all-rooms" element={<AllRooms />} />
             <Route path="/all-rooms/:id" element={<RoomDetails />} />
             <Route path="/all-landlords" element={<AllLandlords />} />
+            <Route path="/chat/:id" element={<ChatPage />} />
             <Route path="/all-landlords/:id" element={<Landlords />} />
             <Route path="/setpassword/:id" element={<Setpassword />} />
             <Route path="/forgotpassword" element={<Forgotpassword />} />

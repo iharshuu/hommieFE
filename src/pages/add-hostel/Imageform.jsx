@@ -62,13 +62,11 @@ const Imageform = ({ formData, handleChange,handlesave, nextStep, prevStep }) =>
     const token = localStorage.getItem('hoomie');
     const formDa = new FormData();
      
-    console.log(images)
     formDa.photos = images
     // Append images to formData
     images.forEach((image, index) => {
       formDa.append(`photos`, image);
     });
-    console.log(formDa)
   
     // Append other form data properties to formData
     Object.entries(formData).forEach(([key, value]) => {
@@ -91,7 +89,6 @@ const Imageform = ({ formData, handleChange,handlesave, nextStep, prevStep }) =>
 
       });
   
-      console.log(response.data);
         
       if (response?.data?.status === "S") {
         navigate('/list-your-hostel')

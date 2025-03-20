@@ -3,12 +3,9 @@ import { FaUser, FaBell } from "react-icons/fa";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { IoHelpCircle } from "react-icons/io5";
 import { LuLogOut } from "react-icons/lu";
-import { IoReorderThreeOutline, IoClose } from "react-icons/io5";
-import { MdOutlineClear } from "react-icons/md";
-import { BsFillBuildingsFill } from "react-icons/bs";
-import { FaHouseChimneyUser } from "react-icons/fa6";
-import { backendUrl } from "../../../lib/config";
+
 import image from "../../../assets/image/ForgotPassword/image.png"
+import { BeatLoader } from "react-spinners";
 
 
 
@@ -231,12 +228,9 @@ const Navbar = () => {
                                 </>
                               ) : (
                                 <>
-                                  <p className="font-semibold text-[#191919]">
-                                    Loading...
-                                  </p>
-                                  <p className="text-[#5B6871] text-xs">
-                                    Loading...
-                                  </p>
+                                 <div className="flex justify-center items-center h-[50vh]">
+                    <BeatLoader color="#4A90E2" />
+                </div>
                                 </>
                               )}
                             </div>

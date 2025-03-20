@@ -16,6 +16,8 @@ const Dashboard = () => {
 
   const handlecomment = async() =>{
     const token = localStorage.getItem('hoomie');
+    
+
 
     try {
       const response = await axios.get(`${backendUrl}homepage/top-commented/`, {
@@ -26,7 +28,6 @@ const Dashboard = () => {
 
       });
   
-      console.log(response.data);
       setProperties(response?.data?.properties)
       if (response?.data?.status === "S") {
         setTimeout(()=>{
