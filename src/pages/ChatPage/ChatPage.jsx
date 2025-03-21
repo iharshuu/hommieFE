@@ -8,7 +8,7 @@ import { AiOutlineArrowLeft } from "react-icons/ai";
 import { useNavigate } from "react-router-dom";
 
 // Connect to WebSocket server
-const socket = io("http://localhost:8080");
+const socket = io("https://hommie-be-9pvdd.vercel.app");
 
 const ChatPage = ({ userchat, handleChat }) => {
     const lastPart = userchat.email;
