@@ -1,51 +1,168 @@
-import axios from 'axios';
-import React, { useEffect, useState } from 'react';
-import { FiMail, FiPhoneCall, FiMapPin, FiHome, FiKey, FiCamera } from 'react-icons/fi';
-import { MdSecurity, MdOutdoorGrill, MdGroup, MdLocalMovies } from 'react-icons/md';
-import { useNavigate, useParams } from 'react-router-dom';
-import { backendUrl } from '../../lib/config';
-import Navbar from '../../components/organisms/Navbar';
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { useParams, useNavigate } from "react-router-dom";
+import { backendUrl } from "../../lib/config";
+import Navbar from "../../components/organisms/Navbar";
+import { BeatLoader } from "react-spinners";
 import { FaArrowLeft } from "react-icons/fa";
-
-
-import Review from '../reviews/Reviews1';
-import { BeatLoader } from 'react-spinners';
+import { FiMail, FiMapPin, FiPhoneCall } from "react-icons/fi";
+import Review from "../reviews/Reviews1";
+import {
+  MdSecurity,
+  MdOutdoorGrill,
+  MdGroup,
+  MdLocalMovies,
+} from "react-icons/md";
+import jsPDF from "jspdf";
+import { toast } from "sonner";
 
 const PropertyDetails = () => {
   const [property, setProperty] = useState(null);
+  const [review, setReview] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [customerDetails, setCustomerDetails] = useState();
   const { id } = useParams();
-  const navigate = useNavigate()
-
-
-  const[review,setReview]=useState(false)
+  const navigate = useNavigate();
 
   useEffect(() => {
+    const script = JSON.parse(localStorage.getItem("cred"));
+    setCustomerDetails(script);
+
     const fetchProperty = async () => {
-      const token = localStorage.getItem('hoomie');
+      const token = localStorage.getItem("hoomie");
       try {
-        const response = await axios.get(`${backendUrl}homePage/view_propertie/${id}`, {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `${token}`, // Include the token in the Authorization header
-          },
-        });
+        const response = await axios.get(
+          `${backendUrl}homePage/view_propertie/${id}`,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `${token}`,
+            },
+          }
+        );
         if (response.status === 200) {
-          setProperty(response.data?.propertydata);
-        } else {
-          console.error('Error fetching property data:', response.statusText);
+          const data = response.data?.propertydata;
+          setProperty(data);
+          if (data?.photos?.length > 0) {
+            setSelectedImage(data.photos[0].path);
+          }
         }
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error("Error fetching data:", error);
       }
     };
 
     fetchProperty();
   }, [id]);
 
+  const generatePDF = async (status, paymentId, amount) => {
+    const doc = new jsPDF();
+  
+    // Load Hommie logo
+    const logoUrl = "https://hommiefe.vercel.app/assets/image-21V97lk_.png";
+    const image = await fetch(logoUrl)
+      .then(res => res.blob())
+      .then(blob => new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.readAsDataURL(blob);
+      }));
+  
+    // Add Logo
+    doc.addImage(image, "PNG", 80, 10, 50, 20);
+  
+    doc.setFontSize(18);
+    doc.setTextColor(40, 40, 40);
+    doc.text("Payment Receipt", 105, 40, { align: "center" });
+  
+    doc.setDrawColor(200);
+    doc.line(20, 45, 190, 45); // top line
+  
+    doc.setFontSize(12);
+    doc.setTextColor(60, 60, 60);
+  
+    const details = [
+      ["Status", status.toUpperCase()],
+      ["Name", customerDetails?.name || "N/A"],
+      ["Email", customerDetails?.email || "N/A"],
+      ['paidto', "Hommie"],
+      ["Property Name", propertyName],
+
+      ["Payment ID", paymentId],
+      ["Amount", ` ${(amount / 100).toLocaleString("en-IN")} Rs/-`],
+      ["Date", new Date().toLocaleString()],
+    ];
+  
+    let y = 55;
+    details.forEach(([label, value]) => {
+      doc.setFont(undefined, "bold");
+      doc.text(`${label}:`, 25, y);
+      doc.setFont(undefined, "normal");
+      doc.text(`${value}`, 70, y);
+      y += 10;
+    });
+  
+    doc.setFontSize(10);
+    doc.setTextColor(150);
+    doc.text("Thank you for booking with Hommie!", 105, y + 10, { align: "center" });
+  
+    doc.save(`Hommie-Receipt-${paymentId}.pdf`);
+  };
+  
+
+  const paymentHandler = async (e) => {
+    e.preventDefault();
+    try {
+      const { data } = await axios.post(`${backendUrl}order`, {
+        amount: property.price * 100,
+        currency: "INR",
+        receipt: new Date().getTime().toString(),
+      });
+
+      const options = {
+        key: "rzp_test_REHiXvIdoU0pqW",
+        amount: property.price * 100,
+        currency: "INR",
+        name: "Hommie",
+        description: "Room Booking Payment",
+        image: "https://hommiefe.vercel.app/assets/image-21V97lk_.png",
+        order_id: data.id,
+        handler: async (response) => {
+          await axios.post(`${backendUrl}order/validate`, response);
+          generatePDF("success", response.razorpay_payment_id, property.price * 100);
+          toast.success("Payment Successful!");
+        },
+        prefill: {
+          name: customerDetails?.name || "Customer",
+          email: customerDetails?.email || "",
+        },
+        notes: {
+          address: "Hommie Corporate Office",
+        },
+        theme: {
+          color: "#3399cc",
+        },
+      };
+
+      const rzp1 = new window.Razorpay(options);
+      rzp1.on("payment.failed", function (response) {
+        generatePDF("failed", response.error.metadata.payment_id, property.price * 100);
+        toast.failure("Payment Failed: " + response.error.description);
+      });
+
+      rzp1.open();
+    } catch (error) {
+      console.error("Error initiating payment:", error);
+      toast.failure("Payment initiation failed.");
+    }
+  };
+
   if (!property) {
-    return <div className="flex justify-center items-center h-[50vh]">
-    <BeatLoader color="#4A90E2" />
-</div>
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <BeatLoader color="#4A90E2" />
+      </div>
+    );
   }
 
   const {
@@ -60,7 +177,6 @@ const PropertyDetails = () => {
     country,
     pincode,
     landmark,
-    distanceFromUniversity,
     basicFacilities,
     outdoorActivities,
     commonArea,
@@ -74,183 +190,141 @@ const PropertyDetails = () => {
 
   return (
     <>
-    <Navbar/>
-    <div className='ml-5 mt-3'>
-    <button
-      onClick={() => {
-         navigate(-1)
-      }}
-      className=" px-2 py-0.75"
-    >
-      <div className="gap-x-2 text-[#6B7280] text-[14px] font-[500] leading-5 flex items-center">
-        {/* <img src={ArrowLeftIcon} className=""/> */}
-        <FaArrowLeft />
-        <span className="ml-1">Back</span>
+      <Navbar />
+
+      <div className="w-[95%] md:w-[90%] mx-auto p-4 max-w-7xl">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center text-gray-600 hover:text-blue-600 mb-4"
+        >
+          <FaArrowLeft className="mr-2" /> Back
+        </button>
+
+        {/* Main Image */}
+        <div className="mb-4">
+          {selectedImage && (
+            <img
+              src={selectedImage}
+              alt="Main"
+              className="w-full h-[40vh] md:h-[60vh] object-contain rounded-md shadow"
+            />
+          )}
+        </div>
+
+        {/* Thumbnails */}
+        <div className="flex gap-3 overflow-x-auto mb-8 no-scrollbar">
+          {photos.map((img, i) => (
+            <img
+              key={i}
+              src={img.path}
+              alt={`Thumbnail ${i + 1}`}
+              className={`h-20 w-28 md:h-24 md:w-32 object-cover rounded-md cursor-pointer border-2 transition-all duration-200 ${
+                selectedImage === img.path
+                  ? "border-blue-600"
+                  : "border-transparent"
+              }`}
+              onClick={() => setSelectedImage(img.path)}
+            />
+          ))}
+        </div>
+
+        {/* Pay Now Button */}
+        <div className="flex justify-end mb-8 gap-5">
+
+        <button
+            onClick={()=>navigate(`/chat`, { state:email  })}
+            className="bg-black text-white font-semibold py-2 px-6 rounded-lg shadow-lg transition duration-300 ease-in-out"
+          >
+            Chat with Landlord
+          </button>
+          <button
+            onClick={paymentHandler}
+            className="bg-black text-white font-semibold py-2 px-6 rounded-lg shadow-lg transition duration-300 ease-in-out"
+          >
+            Pay Now
+          </button>
+        </div>
+
+        {/* Property Info */}
+        <div className="mb-8">
+          <h2 className="text-3xl font-bold text-blue-800 mb-2">{propertyName}</h2>
+          <p className="text-gray-600 mb-4">{description}</p>
+
+          <div className="grid gap-2 text-gray-700 mb-4 text-sm md:text-base">
+            <div className="flex items-center">
+              <FiMail className="mr-2" /> {email}
+            </div>
+            <div className="flex items-center">
+              <FiPhoneCall className="mr-2" /> {mobileNumber}
+            </div>
+            <div className="flex items-center">
+              <FiMapPin className="mr-2" />
+              {`${houseNumber}, ${locality}, ${city}, ${state}, ${country} - ${pincode}`}
+            </div>
+            <div>Landmark: {landmark}</div>
+          </div>
+
+          <div className="bg-blue-50 p-4 rounded-md shadow-sm">
+            <div className="flex flex-col md:flex-row justify-between gap-2 text-gray-800 font-medium">
+              <span>Bedrooms: {bedrooms}</span>
+              <span>Room Size: {roomSize}</span>
+              <span className="text-green-700 font-bold text-lg">
+                {new Intl.NumberFormat("en-IN", {
+                  style: "currency",
+                  currency: "INR",
+                }).format(price)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Amenities Section */}
+        <div className="mb-8">
+          <h3 className="text-2xl font-semibold text-gray-800 mb-5">Amenities</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <AmenityCard title="Basic Facilities" icon={<MdSecurity className="text-blue-600" />} items={basicFacilities} bg="from-blue-100 to-blue-200" hoverBg="bg-blue-50" />
+            <AmenityCard title="Outdoor Activities" icon={<MdOutdoorGrill className="text-green-600" />} items={outdoorActivities} bg="from-green-100 to-green-200" hoverBg="bg-green-50" />
+            <AmenityCard title="Common Area" icon={<MdGroup className="text-yellow-600" />} items={commonArea} bg="from-yellow-100 to-yellow-200" hoverBg="bg-yellow-50" />
+            <AmenityCard title="Entertainment" icon={<MdLocalMovies className="text-red-600" />} items={entertainment} bg="from-red-100 to-red-200" hoverBg="bg-red-50" />
+            <AmenityCard title="Security" icon={<MdSecurity className="text-purple-600" />} items={security} bg="from-purple-100 to-purple-200" hoverBg="bg-purple-50" />
+          </div>
+        </div>
+
+        {/* Reviews */}
+        <div className="mt-10">
+          <button
+            onClick={() => setReview(!review)}
+            className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white px-6 py-2 rounded-md shadow-md hover:from-purple-600 hover:to-indigo-600"
+          >
+            {review ? "Hide Reviews" : "Show Reviews"}
+          </button>
+          {review && (
+            <div className="mt-4">
+              <Review postId={id} />
+            </div>
+          )}
+        </div>
       </div>
-    </button>
-    </div>
-    <div className="w-[75vw] mx-auto px-4 py-8 bg-white rounded-lg shadow-xl">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Property Images Carousel */}
-        <div className='h-[80vh] order-2'>
-        <div className="order-2 relative">
-          {/* Combined Card */}
-          <div className="overflow-hidden bg-white rounded-lg shadow-xl">
-            {/* Carousel */}
-            <div className="carousel rounded-lg overflow-hidden">
-              <div className="flex overflow-x-auto snap-x snap-mandatory overflow-y-hidden no-scrollbar">
-                {photos && photos.length > 0 && photos.map((image, index) => (
-                  <div key={index} className="snap-center w-full flex-none transition duration-500 ease-in-out transform hover:scale-105">
-                    <img src={image.path} alt={`Property image ${index + 1}`} className="w-full h-[50vh] object-cover rounded-lg" />
-                  </div>
-                ))}
-              </div>
-              <div className="absolute top-2 right-2 bg-gradient-to-br from-indigo-500 to-purple-500 p-2 rounded-full shadow-lg">
-                <FiCamera className="text-white" size="24" />
-              </div>
-            </div>
-
-            {/* Room Details */}
-            <div className="px-6 py-4 bg-blue-50">
-              <h3 className="font-semibold text-lg text-gray-800 mb-2 flex items-center">
-                <FiHome className="text-xl mr-2" />Room Details
-              </h3>
-              <div className='flex flex-row items-center justify-between gap-4'>
-                <p className="text-gray-600 mb-2">Bedrooms: {bedrooms}</p>
-                <p className="text-gray-600 mb-2">Room Size: {roomSize}</p>
-              </div>
-              <p className="font-bold text-xl flex items-center justify-center text-green-600">Price:   {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(price)}
-              </p>
-            </div>
-          </div>
-        </div>
-        </div>
-
-        {/* Property Details */}
-        <div className="md:order-1">
-          <div className='h-[80vh]'>
-          <h2 className="text-4xl font-extrabold text-gray-800 mb-6">{propertyName}</h2>
-          <p className="text-lg text-gray-600 mb-8 leading-relaxed">{description}</p>
-          <div className="mb-8">
-            <h3 className="font-semibold text-xl text-gray-800 mb-4 flex items-center hover:text-indigo-500 transition duration-300">
-              <FiKey className="text-2xl mr-3" />Contact Information
-            </h3>
-            <p className="text-gray-600 flex items-center hover:text-indigo-500 transition duration-300">
-              <FiMail className="text-xl mr-3" />{email}
-            </p>
-            <p className="text-gray-600 flex items-center hover:text-indigo-500 transition duration-300">
-              <FiPhoneCall className="text-xl mr-3" />{mobileNumber}
-            </p>
-          </div>
-          <div className="mb-6">
-            <h3 className="font-semibold text-lg text-gray-800 mb-2 flex items-center">
-              <FiMapPin className="text-xl mr-2" />Location
-            </h3>
-            <p className="text-gray-600">
-              {houseNumber}, {locality}, {city}, {state}, {country} - {pincode}
-            </p>
-            <p className="text-gray-600">Landmark: {landmark}</p>
-            {/* <p className="text-gray-600">Distance from university: {distanceFromUniversity} miles</p> */}
-          </div>
-          </div>
-          <div className="mb-8">
-            <h3 className="text-2xl font-semibold text-gray-800 mb-5">Amenities</h3>
-            <div className="grid w-[70vw] h-[50vh] grid-cols-3 gap-6">
-              {/* Basic Facilities */}
-              <div className="relative group bg-gradient-to-br from-blue-100 to-blue-200 shadow-lg rounded-lg overflow-hidden">
-                <div className="p-6">
-                  <div className="flex items-center">
-                    <MdSecurity className="text-2xl text-blue-600 mr-3" />
-                    <h4 className="text-lg font-semibold text-gray-800">Basic Facilities</h4>
-                  </div>
-                </div>
-                <div className="absolute inset-0 p-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-blue-50 bg-opacity-95 max-h-[50vh] overflow-auto no-scrollbar">
-                  <ul className="list-disc pl-5 space-y-2">
-                    {basicFacilities.map((facility, index) => (
-                      <li key={index} className="text-gray-700">{facility}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-
-              {/* Outdoor Activities */}
-              <div className="relative group bg-gradient-to-br from-green-100 to-green-200 shadow-lg rounded-lg overflow-hidden">
-                <div className="p-6">
-                  <div className="flex items-center">
-                    <MdOutdoorGrill className="text-2xl text-green-600 mr-3" />
-                    <h4 className="text-lg font-semibold text-gray-800">Outdoor Activities</h4>
-                  </div>
-                </div>
-                <div className="absolute inset-0 p-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-green-50 bg-opacity-95">
-                  <ul className="list-disc pl-5 space-y-2">
-                    {outdoorActivities.map((activity, index) => (
-                      <li key={index} className="text-gray-700">{activity}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-
-              {/* Common Area */}
-              <div className="relative group bg-gradient-to-br from-yellow-100 to-yellow-200 shadow-lg rounded-lg overflow-hidden">
-                <div className="p-6">
-                  <div className="flex items-center">
-                    <MdGroup className="text-2xl text-yellow-600 mr-3" />
-                    <h4 className="text-lg font-semibold text-gray-800">Common Area</h4>
-                  </div>
-                </div>
-                <div className="absolute inset-0 p-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-yellow-50 bg-opacity-95">
-                  <ul className="list-disc pl-5 space-y-2">
-                    {commonArea.map((area, index) => (
-                      <li key={index} className="text-gray-700">{area}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-
-              {/* Entertainment */}
-              <div className="relative group bg-gradient-to-br from-red-100 to-red-200 shadow-lg rounded-lg overflow-hidden">
-                <div className="p-6">
-                  <div className="flex items-center">
-                    <MdLocalMovies className="text-2xl text-red-600 mr-3" />
-                    <h4 className="text-lg font-semibold text-gray-800">Entertainment</h4>
-                  </div>
-                </div>
-                <div className="absolute inset-0 p-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-red-50 bg-opacity-95">
-                  <ul className="list-disc pl-5 space-y-2">
-                    {entertainment.map((item, index) => (
-                      <li key={index} className="text-gray-700">{item}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-
-              {/* Security */}
-              <div className="relative group bg-gradient-to-br from-purple-100 to-purple-200 shadow-lg rounded-lg overflow-hidden">
-                <div className="p-6">
-                  <div className="flex items-center">
-                    <MdSecurity className="text-2xl text-purple-600 mr-3" />
-                    <h4 className="text-lg font-semibold text-gray-800">Security</h4>
-                  </div>
-                </div>
-                <div className="absolute inset-0 p-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-purple-50 bg-opacity-95">
-                  <ul className="list-disc pl-5 space-y-2">
-                    {security.map((item, index) => (
-                      <li key={index} className="text-gray-700">{item}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div>{ <button onClick={()=>setReview(!review)} type="button" class="text-white bg-gradient-to-br from-purple-600 to-blue-500 hover:bg-gradient-to-bl focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2">{!review?"Show Reviews":"Hide Reviews"}</button>}</div>
-          <div>{review&&<Review postId={id}/>}</div>
-        </div>
-        
-      </div>
-    </div>
     </>
   );
 };
+
+const AmenityCard = ({ title, icon, items, bg, hoverBg }) => (
+  <div className={`relative group bg-gradient-to-br ${bg} shadow-lg rounded-lg overflow-hidden`}>
+    <div className="p-6">
+      <div className="flex items-center">
+        {icon}
+        <h4 className="text-lg font-semibold text-gray-800 ml-3">{title}</h4>
+      </div>
+    </div>
+    <div className={`absolute inset-0 p-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${hoverBg} bg-opacity-95 overflow-auto`}>
+      <ul className="list-disc pl-5 space-y-2 max-h-[50vh]">
+        {items.map((item, index) => (
+          <li key={index} className="text-gray-700">{item}</li>
+        ))}
+      </ul>
+    </div>
+  </div>
+);
 
 export default PropertyDetails;

@@ -60,7 +60,7 @@ const AllLandlords = () => {
                     <BeatLoader color="#4A90E2" />
                 </div>
             ) : userChat ? (
-                <ChatPage userchat={userChat} handleChat={()=>handleChat()} /> // Render ChatPage if userChat is set
+                <ChatPage userchat={userChat}/> // Render ChatPage if userChat is set
             ) : (
                 <>
                 <Navbar />

@@ -1,6 +1,6 @@
 import React, { Suspense, lazy } from "react";
 import { Navigate, BrowserRouter, Routes, Route } from "react-router-dom";
-import ChatPage from "./pages/ChatPage/ChatPage";
+// import ChatPage from "./pages/ChatPage/ChatPage";
 import { BeatLoader } from "react-spinners";
 
 
@@ -22,6 +22,7 @@ const AllLandlords = lazy(() => import("./pages/all-landlords"));
 const Landlords = lazy(() => import("./pages/Landlord"));
 const EditPropertyPage = lazy(() => import("./pages/Edit-hostel"));
 const AboutUs = lazy(() => import("./components/molecules/AboutUS"));
+const ChatPage = lazy(() => import("./pages/ChatPage/ChatPage"));
 
 const Loading = () => (
   <div className="flex justify-center items-center h-[50vh]">
@@ -44,7 +45,7 @@ function App() {
             <Route path="/all-rooms" element={<AllRooms />} />
             <Route path="/all-rooms/:id" element={<RoomDetails />} />
             <Route path="/all-landlords" element={<AllLandlords />} />
-            <Route path="/chat/:id" element={<ChatPage />} />
+            <Route path="/chat" element={<ChatPage  />} />
             <Route path="/all-landlords/:id" element={<Landlords />} />
             <Route path="/setpassword/:id" element={<Setpassword />} />
             <Route path="/forgotpassword" element={<Forgotpassword />} />

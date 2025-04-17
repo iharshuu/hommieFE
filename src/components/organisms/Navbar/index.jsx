@@ -161,6 +161,20 @@ const Navbar = () => {
                   Landlords
                 </div>
               </Link>
+              <Link to="/chat">
+                <div
+                  className={` p-2 text-sm flex flex-row gap-1 hover:text-[#191919] font-semibold ${
+                    currentPath === "/chat"
+                      ? "text-[#191919]"
+                      : "text-[#5B6871]"
+                  }`}
+                >
+                   {/* <div className="p-1 rounded-full bg-gray-200">
+                   <FaHouseChimneyUser className="" />
+                </div> */}
+                  Chat
+                </div>
+              </Link>
               <Link to="/list-your-hostel">
                 <div
                   className={` p-2 text-sm flex flex-row gap-1 hover:text-[#191919] font-semibold ${
